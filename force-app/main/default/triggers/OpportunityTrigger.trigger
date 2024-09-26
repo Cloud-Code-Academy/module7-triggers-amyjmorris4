@@ -18,7 +18,7 @@
       * Question 7
     * Opportunity Trigger
     * When an opportunity is updated set the primary contact on the opportunity to the contact on the same account with the title of 'CEO'.
-    * Trigger should only fire on update.
+    * Trigger should only fire on update. 123
     */
 
 trigger OpportunityTrigger on Opportunity (before update, before delete) {

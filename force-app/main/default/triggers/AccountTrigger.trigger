@@ -21,7 +21,7 @@ Question 4
     * When an account is inserted create a contact related to the account with the following default values:
     * LastName = 'DefaultContact'
     * Email = 'default@email.com'
-    * Trigger should only fire on insert.
+    * Trigger should only fire on insert. 123
 */
 
 

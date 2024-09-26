@@ -350,7 +350,7 @@ static void testAccountTrigger_defaultContact() {
     * Question 7
     * Opportunity Trigger
     * When an opportunity is updated set the primary contact on the opportunity to the contact on the same account with the title of 'CEO'.
-    * Trigger should only fire on update.
+    * Trigger should only fire on update. 123
     */
     @IsTest
     static void testOpportunityTrigger_setPrimaryContact() {
