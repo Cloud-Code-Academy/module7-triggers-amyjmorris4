@@ -20,56 +20,67 @@
     * When an opportunity is updated set the primary contact on the opportunity to the contact on the same account with the title of 'CEO'.
     * Trigger should only fire on update.
     */
-    trigger OpportunityTrigger on Opportunity (before update, after update, before delete){
 
-        if (Trigger.isBefore){
-            if(Trigger.isUpdate){
-                for (Opportunity opportunity : Trigger.new){
-                    if (opportunity.Amount < 5000){
-                        opportunity.addError('Opportunity amount must be greater than 5000');
-                    }
-                }
-    }
-            if(Trigger.isDelete){
-                for (Opportunity opportunity : Trigger.old){
-                    if (opportunity.StageName == 'Closed Won' && opportunity.Account.Industry == 'Banking'){
-                            opportunity.addError('Cannot delete closed won opportunity for a banking account');
-                    }
-                }
-            } }
+trigger OpportunityTrigger on Opportunity (before update, before delete) {
 
-        if (Trigger.isAfter){
-            if(Trigger.isUpdate){
-               Set<Id> accountIds = new Set<Id>();
-               for (Opportunity opp : Trigger.new){
-                if(opp.AccountId != null){
-                    accountIds.add(opp.AccountId);
+    if (Trigger.isBefore) {
+        if (Trigger.isUpdate) {
+            for (Opportunity opportunity : Trigger.new) {
+                if (opportunity.Amount != null && opportunity.Amount < 5000) {
+                    opportunity.addError('Opportunity amount must be greater than 5000');
                 }
-               }
-               //Query Contacts with title "CEO" related to accounts
-               Map<Id, Contact> ceoContactsMap = new Map<Id, Contact>();
-               for (Contact contact : [SELECT Id, AccountId FROM Contact WHERE AccountId IN :accountIds AND Title = 'CEO']){
-                ceoContactsMap.put(contact.AccountId, contact);
-               }
-               // Iterate over the Opportunities and update OpportunityContactRole
-            List<OpportunityContactRole> newOcrs = new List<OpportunityContactRole>();
-            for (Opportunity opp : Trigger.new) {
-                if (opp.AccountId != null && ceoContactsMap.containsKey(opp.AccountId)) {
-                    Contact ceoContact = ceoContactsMap.get(opp.AccountId);
-
-                    // Create a new OpportunityContactRole to associate the CEO contact
-                    OpportunityContactRole ocr = new OpportunityContactRole();
-                    ocr.OpportunityId = opp.Id;
-                    ocr.ContactId = ceoContact.Id;
-                    ocr.Role = 'CEO'; 
-                    ocr.IsPrimary = true;
-                    newOcrs.add(ocr);
+            }
+            Set<Id> accountIds = new Set<Id>();
+            for (Opportunity opportunity : Trigger.new) {
+                if (opportunity.AccountId!= null) {
+                    accountIds.add(opportunity.AccountId);
                 }
             }
 
-            if (!newOcrs.isEmpty()) {
-                insert newOcrs;
+            if (accountIds.size() > 0) {
+                Map<Id, Account> accountsMap = new Map<Id, Account>([
+                    SELECT Id, (SELECT Id, Title, AccountId FROM Contacts WHERE Title = 'CEO')
+                    FROM Account
+                    WHERE Id IN :accountIds
+                ]);
+
+                for (Opportunity opportunity : Trigger.new) {
+                    if (opportunity.AccountId!= null) {
+                        Account parentAccount = accountsMap.get(opportunity.AccountId);
+                        if (parentAccount!= null) {
+                            for (Contact contact : parentAccount.Contacts) {
+                                if (contact.Title == 'CEO') {
+                                    opportunity.Primary_Contact__c = contact.Id;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-}
+
+        if (Trigger.isDelete) {
+            Set<Id> accountIds = new Set<Id>();
+            for (Opportunity opportunity : Trigger.old) {
+                if (opportunity.AccountId != null) {
+                    accountIds.add(opportunity.AccountId);
+                }
+            }
+
+            Map<Id, Account> accountsMap = new Map<Id, Account>([SELECT Id, Industry FROM Account WHERE Id IN :accountIds]);
+
+            for (Opportunity opportunity : Trigger.old) {
+                if (opportunity.StageName == 'Closed Won' && accountsMap.containsKey(opportunity.AccountId) 
+                     && accountsMap.get(opportunity.AccountId).Industry == 'Banking') {
+                    opportunity.addError('Cannot delete closed opportunity for a banking account that is won');
+                }
+            }
+        }
+    }    
+
+        
+
+            
+

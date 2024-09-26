@@ -34,33 +34,34 @@ trigger AccountTrigger on Account (before insert, after insert) {
                 if (acc.Type == null) {
                     acc.Type = 'Prospect';
 
-                acc.BillingStreet = acc.ShippingStreet;
-                acc.BillingCity = acc.ShippingCity;
-                acc.BillingState = acc.ShippingState;
-                acc.BillingPostalCode = acc.ShippingPostalCode;
-                acc.BillingCountry = acc.ShippingCountry;
+                    acc.BillingStreet = acc.ShippingStreet;
+                    acc.BillingCity = acc.ShippingCity;
+                    acc.BillingState = acc.ShippingState;
+                    acc.BillingPostalCode = acc.ShippingPostalCode;
+                    acc.BillingCountry = acc.ShippingCountry;
 
-                if (acc.Phone != null && acc.Phone != '' && acc.Website != null && acc.Website != '' && acc.Fax != null && acc.Fax != '') {
-                    acc.Rating = 'Hot';
-                }
+                    if (acc.Phone != null && acc.Phone != '' && acc.Website != null && acc.Website != '' && acc.Fax != null && acc.Fax != '') {
+                        acc.Rating = 'Hot';
+                    }
+                }   
             }
         }
-
         if (Trigger.isAfter) {
             // Create a contact for each account inserted. 
             List<Contact> contacts = new List<Contact>();
             for (Account acc2 : Trigger.new) {
-                Contact contact = new Contact();
-                contact.LastName = 'DefaultContact';
-                contact.Email = 'default@email.com';
-                contact.AccountId = acc2.Id;
-                contacts.add(contact);
+                //Ensure that the account has been successfully inserted (has an Id).
+                if (acc2.Id != null) {
+                    Contact contact = new Contact();
+                    contact.LastName = 'DefaultContact';
+                    contact.Email = 'default@email.com';
+                    contact.AccountId = acc2.Id;
+                    contacts.add(contact);
+                }
             }
-            insert contacts;
+            if (!contacts.isEmpty()) {
+                insert contacts;
+            }
         }
-        }
-
     }
-
-    }
-    
+}

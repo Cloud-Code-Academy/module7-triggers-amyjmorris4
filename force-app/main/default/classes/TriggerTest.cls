@@ -1,4 +1,5 @@
-/*
+/* 
+Tests failing: 4, 6, 7 
 * Complete the following exercises based on the tests.
 * Create triggers on account and on opportunity.
 *
@@ -206,47 +207,54 @@ public with sharing class TriggerTest {
     * Email = 'default@email.com'
     * Trigger should only fire on insert.
     */
-    @IsTest
-    static void testAccountTrigger_defaultContact() {
-        // Prepare the test data
-        List<Account> accountsToInsert = new List<Account>();
-        for (Integer i = 0; i < 400; i++) {
-            Account acc = new Account(Name = 'Test Account ' + i);
-            accountsToInsert.add(acc);
-        }
-
-        // Perform the test
-        Test.startTest();
-        Database.DMLOptions dml = new Database.DMLOptions(); 
-        dml.DuplicateRuleHeader.allowSave = true;
-        dml.DuplicateRuleHeader.runAsCurrentUser = true;
-        Database.insert(accountsToInsert, dml);
-        Test.stopTest();
-
-        // Retrieve the newly created Contacts
-        List<Contact> contacts = [SELECT Id, LastName, Email, AccountId FROM Contact WHERE AccountId IN :accountsToInsert];
-
-        // Assert that the correct number of Contacts has been created
-        System.assertEquals(400, contacts.size(), 'Incorrect number of Contacts created.');
-
-        // Assert that each Contact has the expected field values
-        for (Contact con : contacts) {
-            System.assertEquals('DefaultContact', con.LastName, 'Contact LastName is incorrect.');
-            System.assertEquals('default@email.com', con.Email, 'Contact Email is incorrect.');
-            System.assertNotEquals(null, con.AccountId, 'Contact AccountId is null.');
-        }
-
-        delete contacts;
-        for (Account acc : accountsToInsert) {
-            acc.Name = 'Test Account Updated';
-        }
-
-        update accountsToInsert;
-
-        List<Contact> updatedContacts = [SELECT Id, LastName, Email, AccountId FROM Contact];
-        // Assert that the Contacts no contacts exists
-        System.assertEquals(0, updatedContacts.size(), 'Contacts should not exist.');
+  @IsTest
+static void testAccountTrigger_defaultContact() {
+    // Prepare the test data
+    List<Account> accountsToInsert = new List<Account>();
+    for (Integer i = 0; i < 400; i++) {
+        Account acc = new Account(Name = 'Test Account ' + i);
+        accountsToInsert.add(acc);
     }
+
+    // Perform the test
+    Test.startTest();
+    Database.DMLOptions dml = new Database.DMLOptions(); 
+    dml.DuplicateRuleHeader.allowSave = true;
+    dml.DuplicateRuleHeader.runAsCurrentUser = true;
+    Database.insert(accountsToInsert, dml);
+    Test.stopTest();
+
+    // Retrieve the newly created Account Ids
+    Set<Id> accountIds = new Set<Id>();
+    for (Account acc : accountsToInsert) {
+        accountIds.add(acc.Id);
+    }
+
+    // Retrieve the newly created Contacts
+    List<Contact> contacts = [SELECT Id, LastName, Email, AccountId FROM Contact WHERE AccountId IN :accountIds];
+
+    // Assert that the correct number of Contacts has been created
+    System.assertEquals(400, contacts.size(), 'Incorrect number of Contacts created.');
+
+    // Assert that each Contact has the expected field values
+    for (Contact con : contacts) {
+        System.assertEquals('DefaultContact', con.LastName, 'Contact LastName is incorrect.');
+        System.assertEquals('default@email.com', con.Email, 'Contact Email is incorrect.');
+        System.assertNotEquals(null, con.AccountId, 'Contact AccountId is null.');
+    }
+
+    delete contacts;
+    for (Account acc : accountsToInsert) {
+        acc.Name = 'Test Account Updated';
+    }
+
+    update accountsToInsert;
+
+    List<Contact> updatedContacts = [SELECT Id, LastName, Email, AccountId FROM Contact];
+    // Assert that no Contacts exist after the delete operation
+    System.assertEquals(0, updatedContacts.size(), 'Contacts should not exist.');
+}
+
 
     /*
     * Question 5
